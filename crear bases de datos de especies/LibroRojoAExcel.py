@@ -1,3 +1,4 @@
+#El PDF leído por este codigo se encuentra disponible en: https://www.researchgate.net/publication/318970039_Libro_Rojo_de_las_Plantas_Endemicas_del_Ecuador
 #Antes de ejecutar este código, se deben instalar las librerias: pdfplumber y pandas en python
 import pdfplumber
 import pandas as pd
