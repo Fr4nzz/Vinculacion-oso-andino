@@ -10,7 +10,7 @@ prov_search = re.compile(r'^(AZU|BOL|CAÑ|CAR|CHI|COT|ESM|GAL|GUA|IMB|LOJ|MAN|MO
 herbarios_search = re.compile(r'^Herbarios ecuatorianos')
 ref_search = re.compile(r'^Refs')
 desconocid_search = re.compile('desconocid')
-pdf = pdfplumber.open('C:/Users/FranzCh/Documents/ProyectoOsos/librorojo2012pdf.pdf')
+pdf = pdfplumber.open('librorojo2012pdf.pdf')
 ## las hojas de especies del PDF esta organizado en 2 columnas delimitadas por las coordenadas:
 xleft,yup,xright,ydown,xmid = 45,137,567,735,306
 leftSide = (xleft,yup,xmid,ydown)
