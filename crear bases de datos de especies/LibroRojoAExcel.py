@@ -7,7 +7,9 @@ import time
 import os
 start = time.time()
 print('Cargando pdf con la libreria pdfplumber')
-os.chdir('C:/Users/FranzCh/Documents/VincProject')#Especifíca la carpeta donde se encuentra el pdf y donde se guarda el archivo de excel
+'''Descomentar la siguiente linea si se quiere especificar la carpeta donde se encuentra el pdf y donde se guardará el archivo de excel.
+Por defecto se utiliza la de ubicacion del script'''
+#os.chdir('C:/Users/FranzCh/Documents/VincProject')
 pdf = pdfplumber.open('librorojo2012pdf.pdf')
 #Definicion de las expresiones regulares a buscar en el texto:
 year_search = re.compile(r'd{4}')
