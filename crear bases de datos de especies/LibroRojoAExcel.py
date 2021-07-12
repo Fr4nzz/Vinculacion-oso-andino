@@ -1,4 +1,5 @@
-'''El PDF leído por este codigo se encuentra disponible en: https://www.researchgate.net/publication/318970039_Libro_Rojo_de_las_Plantas_Endemicas_del_Ecuador
+'''El PDF leído por este codigo se encuentra disponible en:
+https://www.researchgate.net/publication/318970039_Libro_Rojo_de_las_Plantas_Endemicas_del_Ecuador
 Antes de ejecutar este código, se deben instalar las librerias: pdfplumber, pandas y openpyxl en python'''
 import pdfplumber
 import pandas as pd
@@ -6,8 +7,8 @@ import re
 import time
 import os
 start = time.time()
-'''Descomentar la siguiente linea si se quiere especificar la carpeta donde se encuentra el pdf y donde se guardará el archivo de excel.
-Por defecto se utiliza la de ubicacion del script'''
+'''Descomentar la siguiente linea si se quiere especificar la carpeta donde se encuentra el pdf
+y donde se guardará el archivo de excel. Por defecto se utiliza la ubicacion del script'''
 #os.chdir('C:/Users/FranzCh/Documents/VincProject')
 print('Cargando pdf con la libreria pdfplumber')
 pdf = pdfplumber.open('librorojo2012pdf.pdf')
@@ -21,8 +22,8 @@ ref_search = re.compile(r'^Refs')
 desconocid_search = re.compile('desconocid')
 lycophytas_search = re.compile('(lycoph)|(pteridoph)', re.IGNORECASE)
 family_search = re.compile('^([a-z]+ceae)\s*$', re.IGNORECASE) #identifica a un nombre de familia porque termina en ceae
-iucn_category_search = re.compile(r'\((EX|EW|CR|EN|VU|NT|LC|DD|NE)\)') #identifica las categorias UICN dentro de parentesis
-m_search = re.compile('\d\s*m(\s*|\?|$)')#Identificasi una linea contiene una altura sobre el nivel de mar
+iucn_category_search = re.compile(r'\((EX|EW|CR|EN|VU|NT|LC|DD|NE)\)') #identifica las categorias UICN entre parentesis
+m_search = re.compile('\d\s*m(\s*|\?|$)')#Identifica si una linea contiene una altura sobre el nivel de mar
 
 '''La tabla informativa de cada especie empieza con su nombre. Para identificar donde empieza una tabla informativa,
 se deben saber de antemano los nombres de las especies. Los nombres de las especies se encuentran organizados por
@@ -76,13 +77,14 @@ def listadoDeEspecies():
     print(f'Nombres de especies a buscar encontrados en: {time.time() - start} segundos')
     return Familias
 sppNames = listadoDeEspecies()
+
 '''Una vez obtenido el listado de especies que se esperan encontrar en el Libro Rojo, se procede a buscar cada especie
 en el contenido del libro. Las especies estan ordenadas por: 1. Grupos (angiospermas, gimnospermas, ...),
 2. Familias (en orden alfabético), 3. Especies (en orden alfabético). Como se sabe en qué orden va apareciendo cada
-tabla informativa de especie, se realiza una iteracion, linea por linea hasta encontrar un match con el nombre de la especie
+tabla informativa de especie, se realiza una iteracion, linea por linea, hasta hacer un match con el nombre de la especie
 esperada y se lee las siguientes lineas de texto donde se encuentra la información de la especie de forma estructurada.
-La información de la especie termina con una lista de herbarios o con una lista de referencias. Una vez llegado al final de la tabla,
-se procede a buscar la siguiente tabla de especie.'''
+La información de la especie termina con una lista de herbarios o con una lista de referencias.
+Una vez llegado al final de la tabla, se procede a buscar la siguiente tabla de especie.'''
 iucn_category_search = re.compile(r'(EX|EW|CR|EN|VU|NT|LC|DD|NE)') #identifica las categorias UICN fuera de parentesis
 ## las hojas de especies del PDF esta organizado en 2 columnas delimitadas por las coordenadas:
 xleft,yup,xright,ydown,xmid = 45,137,567,735,314
@@ -93,8 +95,8 @@ Groups = {'ANGIOSPERMAS':{'pages':(70,817),'expectedSpp':sppNames[sppNames.Grupo
           'Licofitas y Helechos':{'pages':(825,863),'expectedSpp':sppNames[sppNames.Grupo.str.contains('LYCOPH|PTERIDOPH')],'text':''},
           'BRYOPHYTAS':{'pages':(866,879),'expectedSpp':sppNames[sppNames.Grupo.str.contains('BRYOPH')],'text':''}}
 #Nombres para las columnas de excel:
-cols = ['Especie','Autor','Familia','Grupo','Lugar de publicacion','Categoria de la IUCN (raw)','codigo IUCN','Forma de Vida',
-        'Habitat','Altitud','Provincias','Descripcion','Herbarios ecuatorianos','Referencias']
+cols = ['Especie','Autor','Familia','Grupo','Lugar de publicacion','Categoria de la IUCN (raw)','codigo IUCN',
+        'Forma de Vida','Habitat','Altitud','Provincias','Descripcion','Herbarios ecuatorianos','Referencias']
 for GroupName, currentGroup in Groups.items():
     currentGroup['Familias'] = {}
     sppNamesDF = currentGroup['expectedSpp']
@@ -104,7 +106,6 @@ for GroupName, currentGroup in Groups.items():
         currentGroup['Familias'][familia] = {'genusRegex':re.compile('^'+'('+'|'.join(genera)+')')}
         for genus in genera:
             sppNamesInGenus = FamDF['Especie'][FamDF['Genero'].str.contains(genus)].str[:41]
-            #sppNamesInGenus.loc[~(sppNamesInGenus.str.contains('\(')) & sppNamesInGenus.str.contains('\)')]
             currentGroup['Familias'][familia][genus] = {
                 'sppRegex':re.compile('^('+'|'.join(sppNamesInGenus).replace('(',r'\(').replace(')',r'\)')+'*)')}
     print(f'Leyendo especies correspondientes al grupo {GroupName}')
@@ -113,10 +114,10 @@ for GroupName, currentGroup in Groups.items():
     currentFamily = ''
     if currentGroup['text'] == '':
         for pageN in range(*currentGroup['pages']):
-            print("reading page N: ", pageN+1) #se suma 1 porque la primera pagina tiene numeracion 0
+            print("reading page N: ", pageN+1) #se suma 1 porque la numeracion de las pags. por pdfplumber empieza en 0
             page = pdf.pages[pageN] #Lee y carga la pagina actual en la memoria
             lines = []
-            #En este for loop se identifican los encabezados de las familias(ej: pag 76 encabezado de Actinidiaceae)
+            #En el siguiente for loop se identifican los encabezados de las familias (ej: pag. 76 Actinidiaceae)
             for line in page.lines:
                 duplicatedLine = False
                 #El encabezado se reconoce porque siempre tiene una linea de longitud entre 114 y 170 pixels
@@ -130,13 +131,15 @@ for GroupName, currentGroup in Groups.items():
                         continue
                     lines.append(line['top'])
             lines.sort()# Se ordenan las lineas en orden de aparicion de arriba hacia abajo de la pagina
-            #El encabezado tiene una altura de 114 pixeles con la linea ubicada en el medio
+            #El encabezado tiene una altura de 114 pixeles con la linea ubicada en el medio:
             lines = [{"lineBoxUp":yline-57,"lineBoxDown":yline+57} for yline in lines]
             linesN = len(lines)
             # Cada encabezado divide a la pagina horizontalmente creando multiples columnas
-            # que se leen de izquierda a derecha y de arriba a abajo
+            # que se leen de izquierda a derecha y de arriba a abajo:
             if linesN:
                 for i,yline in enumerate(lines):
+                    #Se lee el texto dentro del encabezado para saber a que familia pertenecen las especies que se leen
+                    #despues del encabezado
                     headBox = page.crop((xleft,yline["lineBoxUp"],xright,yline["lineBoxDown"])).extract_text()
                     if yline["lineBoxUp"] > yup and i == 0:
                         upperBoxLeft = page.crop((xleft,yup,xmid,yline["lineBoxUp"])).extract_text()
@@ -146,11 +149,11 @@ for GroupName, currentGroup in Groups.items():
                     lowerBoxLeft = page.crop((xleft,yline["lineBoxDown"],xmid,columnDown)).extract_text()
                     lowerBoxRight = page.crop((xmid,yline["lineBoxDown"],xright,columnDown)).extract_text()
                     columns.extend([headBox,lowerBoxLeft,lowerBoxRight])
-            else:
+            else: #Si la pagina no tiene encabezados, simplemente se divide a la pagina en dos columnas
                 leftColumn = page.crop(leftSide).extract_text()
                 rightColumn = page.crop(rightSide).extract_text()
                 columns.extend([leftColumn,rightColumn])
-            page.close() #Se borra la informacion obtenida por la libreria pdfplumber sobre la pagina actual
+            page.close() #Se libera de la memoria toda la información de la página extraída por pdfplumber
         columns = list(filter(None, columns)) #Se eliminan las columnas sin texto
         text = '\n'.join(columns)  # se unen las columnas en un solo texto
         text = text.split('\n')  # el texto se separa en lineas
@@ -159,7 +162,7 @@ for GroupName, currentGroup in Groups.items():
                 text.remove(' ') #Se eliminan las lineas en blanco
             except ValueError:
                 break
-        currentGroup['text'] = text  # el texto crudo se almacena en el diccionario para facilitar la depuración del código
+        currentGroup['text'] = text  # el texto crudo se almacena en el diccionario
     else:
         text = currentGroup['text']
     i = 0
@@ -220,9 +223,6 @@ for GroupName, currentGroup in Groups.items():
                         break
                 provStart = ii+4 #default provinces start 4 lines after IUCN category
                 for j in range(ii+2,ii+7):
-                    # if desconocid_search.search(text[j]) or m_search.search(text[j]):
-                    #     provStart = j+1
-                    #     break
                     if prov_search.search(text[j]):
                         provStart = j
                         break
@@ -248,7 +248,7 @@ for GroupName, currentGroup in Groups.items():
                         descrStart = j
                         break
                 prov = ''.join(text[provStart:descrStart])
-                herbStart = -1#Default herbarium line is last line of read pages
+                herbStart = -1
                 for j in range(descrStart+1,len(text)):
                     if herbarios_search.search(text[j]):
                         herbStart = j
@@ -256,9 +256,10 @@ for GroupName, currentGroup in Groups.items():
                     if text[j][-1] == '.':
                         herbStart = j+1
                         break
-                #La descripcion contiene multiples lineas que estan delimitadas por la lista de provincias (arriba) y por la lista de herbarios (abajo)
+                # La descripcion contiene multiples lineas que estan delimitadas por la lista de provincias (arriba)
+                # y por la lista de herbarios (abajo):
                 descr = ''.join(text[descrStart:herbStart])
-                # la tabla termina con una linea que empieza con el texto: 'Herbarios Ecuatorianos' o con el texto 'Ref:'
+                # la tabla termina con la lista de 'Herbarios Ecuatorianos' o con 'Ref:'
                 refs = ''
                 if j+1<len(text):
                     refs = text[j+1][7:] if ref_search.search(text[j+1][:4]) else ''
