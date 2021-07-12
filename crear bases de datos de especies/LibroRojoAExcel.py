@@ -1,26 +1,26 @@
-#El PDF leído por este codigo se encuentra disponible en: https://www.researchgate.net/publication/318970039_Libro_Rojo_de_las_Plantas_Endemicas_del_Ecuador
-#Antes de ejecutar este código, se deben instalar las librerias: pdfplumber, pandas y openpyxl en python
+'''El PDF leído por este codigo se encuentra disponible en: https://www.researchgate.net/publication/318970039_Libro_Rojo_de_las_Plantas_Endemicas_del_Ecuador
+Antes de ejecutar este código, se deben instalar las librerias: pdfplumber, pandas y openpyxl en python'''
 import pdfplumber
 import pandas as pd
 import re
 import time
 import os
 start = time.time()
-print('Cargando pdf con la libreria pdfplumber')
 '''Descomentar la siguiente linea si se quiere especificar la carpeta donde se encuentra el pdf y donde se guardará el archivo de excel.
 Por defecto se utiliza la de ubicacion del script'''
 #os.chdir('C:/Users/FranzCh/Documents/VincProject')
+print('Cargando pdf con la libreria pdfplumber')
 pdf = pdfplumber.open('librorojo2012pdf.pdf')
 #Definicion de las expresiones regulares a buscar en el texto:
 year_search = re.compile(r'd{4}')
 anyNumber = re.compile(r'\d')
 prov_search = re.compile(r'^\?*\(*(AZU|BOL|CAÑ|CAN|CAR|CHI|COT|ESM|GAL|GUA|IMB|LOJ|MAN|MOR|NAP|ORO|ORE|PAS|PIC|RIO|'+
                          r'SDT|SEL|SUC|TUN|ZAM|Localidad desconocida|Provincias* desconocida)')
-herbarios_search = re.compile(r'^Herbarios ecuatorianos')
+herbarios_search = re.compile(r'^(Herbarios ecuatorianos:* *|Nota:* *)')
 ref_search = re.compile(r'^Refs')
 desconocid_search = re.compile('desconocid')
 lycophytas_search = re.compile('(lycoph)|(pteridoph)', re.IGNORECASE)
-family_search = re.compile('^[a-z]+ceae$', re.IGNORECASE) #identifica a un nombre de familia porque termina en ceae
+family_search = re.compile('^([a-z]+ceae)\s*$', re.IGNORECASE) #identifica a un nombre de familia porque termina en ceae
 iucn_category_search = re.compile(r'\((EX|EW|CR|EN|VU|NT|LC|DD|NE)\)') #identifica las categorias UICN dentro de parentesis
 m_search = re.compile('\d\s*m(\s*|\?|$)')#Identificasi una linea contiene una altura sobre el nivel de mar
 
@@ -83,8 +83,8 @@ tabla informativa de especie, se realiza una iteracion, linea por linea hasta en
 esperada y se lee las siguientes lineas de texto donde se encuentra la información de la especie de forma estructurada.
 La información de la especie termina con una lista de herbarios o con una lista de referencias. Una vez llegado al final de la tabla,
 se procede a buscar la siguiente tabla de especie.'''
-## las hojas de especies del PDF esta organizado en 2 columnas delimitadas por las coordenadas:
 iucn_category_search = re.compile(r'(EX|EW|CR|EN|VU|NT|LC|DD|NE)') #identifica las categorias UICN fuera de parentesis
+## las hojas de especies del PDF esta organizado en 2 columnas delimitadas por las coordenadas:
 xleft,yup,xright,ydown,xmid = 45,137,567,735,314
 leftSide = (xleft,yup,xmid,ydown)
 rightSide = (xmid,yup,xright,ydown)
@@ -106,7 +106,7 @@ for GroupName, currentGroup in Groups.items():
             sppNamesInGenus = FamDF['Especie'][FamDF['Genero'].str.contains(genus)].str[:41]
             #sppNamesInGenus.loc[~(sppNamesInGenus.str.contains('\(')) & sppNamesInGenus.str.contains('\)')]
             currentGroup['Familias'][familia][genus] = {
-                'sppRegex':re.compile('^('+'|'.join(sppNamesInGenus).replace('(','\(').replace(')','\)')+')')}
+                'sppRegex':re.compile('^('+'|'.join(sppNamesInGenus).replace('(',r'\(').replace(')',r'\)')+'*)')}
     print(f'Leyendo especies correspondientes al grupo {GroupName}')
     species = []
     columns = []
@@ -163,12 +163,19 @@ for GroupName, currentGroup in Groups.items():
     else:
         text = currentGroup['text']
     i = 0
+    famI, famEnd = 0, 0
     currentFamily = sppNamesDF.sort_values('Familia')['Familia'].values[0]
     while i < len(text):
         familyFound = family_search.search(text[i])
         if familyFound:
-            trueFam = familyFound.group(0)
+            trueFam = familyFound.group(1)
             currentFamily = 'Capparaceae' if trueFam == 'Cleomaceae' else trueFam
+            if currentFamily == 'Lauraceae':
+                famI = i if famI == 0 else famI
+            else:
+                print(f'currentFam changed to: {currentFamily}')
+        if currentFamily == 'Lauraceae':
+            famEnd = i
         genusFound = currentGroup['Familias'][currentFamily]['genusRegex'].search(text[i])
         if genusFound:
             genus = genusFound.group(0)
@@ -194,7 +201,6 @@ for GroupName, currentGroup in Groups.items():
                 auxBreak = True
                 for j in range(i+1,i+6):
                     if re.compile(sppName).search(text[j]):
-                        auxBreak = True
                         break
                     if iucn_category_search.search(text[j]):
                         auxBreak = False
@@ -247,13 +253,16 @@ for GroupName, currentGroup in Groups.items():
                     if herbarios_search.search(text[j]):
                         herbStart = j
                         break
+                    if text[j][-1] == '.':
+                        herbStart = j+1
+                        break
                 #La descripcion contiene multiples lineas que estan delimitadas por la lista de provincias (arriba) y por la lista de herbarios (abajo)
                 descr = ''.join(text[descrStart:herbStart])
                 # la tabla termina con una linea que empieza con el texto: 'Herbarios Ecuatorianos' o con el texto 'Ref:'
                 refs = ''
                 if j+1<len(text):
                     refs = text[j+1][7:] if ref_search.search(text[j+1][:4]) else ''
-                herbarios = text[herbStart][24:]
+                herbarios = herbarios_search.split(text[i])[-1]
                 spp = [sppName,author,trueFam,GroupName,publishLoc,rawIUCN,IUCN,lifeForm,habitat,altitude,prov,descr,herbarios,refs]
                 species.append(spp)
                 i = j
@@ -263,7 +272,7 @@ for GroupName, currentGroup in Groups.items():
 LibroRojo = pd.concat([Groups[GroupName]['digestedSpecies'] for GroupName in Groups])
 #Crea una columna lógica cuyo valor es 1 (True) si la especie ocurre en Imbabura ó 0 (False) si no.
 LibroRojo['Imbabura'] = LibroRojo['Provincias'].str.contains("IMB")
+#Se añaden las especies que no fueron encontradas por el algoritmo en el cuerpo del texto pero si en el listado de especies:
 LibroRojo = pd.merge(sppNames, LibroRojo, on="Especie",how="left")
-#Se añaden las especies que no fueron encontradas por el algoritmo en el cuerpo del texto pero si en el listado de especies
 LibroRojo.to_excel('LibroRojo a excel.xlsx', index = False, header=True)
 print(f'tiempo total de ejecución del algoritmo: {(time.time() - start)/60} minutos')
