@@ -166,19 +166,13 @@ for GroupName, currentGroup in Groups.items():
     else:
         text = currentGroup['text']
     i = 0
-    famI, famEnd = 0, 0
     currentFamily = sppNamesDF.sort_values('Familia')['Familia'].values[0]
     while i < len(text):
         familyFound = family_search.search(text[i])
         if familyFound:
             trueFam = familyFound.group(1)
             currentFamily = 'Capparaceae' if trueFam == 'Cleomaceae' else trueFam
-            if currentFamily == 'Lauraceae':
-                famI = i if famI == 0 else famI
-            else:
-                print(f'currentFam changed to: {currentFamily}')
-        if currentFamily == 'Lauraceae':
-            famEnd = i
+            print(f'currentFam changed to: {currentFamily}')
         genusFound = currentGroup['Familias'][currentFamily]['genusRegex'].search(text[i])
         if genusFound:
             genus = genusFound.group(0)
